@@ -1,0 +1,11 @@
+{
+	"id": "universe-timeline",
+	"name": "universe Time Line",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "a tool about timeline for novel writer",
+	"author": "byron-icefield",
+	"authorUrl": "https://obsidian.md",
+	"fundingUrl": "https://obsidian.md/pricing",
+	"isDesktopOnly": false
+}
