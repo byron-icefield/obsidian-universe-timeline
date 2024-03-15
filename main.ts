@@ -1,19 +1,13 @@
-import { Plugin } from 'obsidian';
+import { Plugin, MarkdownRenderer } from 'obsidian';
+// import * as yaml from 'js-yaml';
+// import { TimelineEvent } from 'event/event';
 
 export default class TimelineBlockPlugin extends Plugin {
 
 	async onload() {
-
-		this.registerMarkdownCodeBlockProcessor("universe-timeline", (source, el, ctx) => {
-			const rows = source.split("\n");
-
-			deconstractRows(rows).forEach(event => {
-				el.createEl("h1", { text: event.title })
-			})
-		});
-
 		this.registerMarkdownCodeBlockProcessor("universe-timeline-block", (source, el, ctx) => {
 			const rows = source.split("\n");
+			let timelineBlock = el.createDiv({ cls: "timeline-block" });
 
 			let fileName: string = '';
 			let keyword: string = '';
@@ -25,32 +19,72 @@ export default class TimelineBlockPlugin extends Plugin {
 				}
 			}
 			console.log(fileName, keyword)
+			if (keyword) {
+				timelineBlock.createDiv({ cls: "timeline-title", text: `${keyword} from ${fileName}` })
+			} else {
+				timelineBlock.createDiv({ cls: "timeline-title", text: `all from ${fileName}` })
+			}
 
 			let file = this.app.vault.getFileByPath(fileName + ".md");
 			if (file) {
 				this.app.vault.read(file).then(content => {
 					let events = deconstractContent(content);
-					console.log(events)
-					events = events.filter(event => event.member.contains(keyword));
-					console.log(events)
+					events.forEach(event => event.memberDraw());
+					console.log(events);
+					if (keyword?.length > 0) {
+						events = events.filter(event => event.content?.contains(keyword));
+						console.log(events);
+					}
 					if (events?.length == 0) {
-						el.createEl("h1", { text: "event not found" })
+						timelineBlock.createEl("h1", { text: "event not found" })
 					} else {
 						events.forEach(event => {
-							el.createEl("h1", { text: event.title })
+							let timelineLine = timelineBlock.createDiv({ cls: "timeline-line" });
+							
+							let timelineLineTime = timelineLine.createDiv({ cls: "timeline-line-time"})
+							MarkdownRenderer.render(this.app, event.date, timelineLineTime, fileName, this)
+
+							let timelineLineContent = timelineLine.createDiv({ cls: "timeline-line-content" })
+							MarkdownRenderer.render(this.app, event.content, timelineLineContent, fileName, this);
 						})
 					}
 				});
 			} else {
-				el.createEl("h1", { text: "file not found" })
+				timelineBlock.createEl("h1", { text: "file not found" })
 			}
 
 		});
+		// this.registerMarkdownCodeBlockProcessor("universe-timeline-yaml", (source, el, ctx) => {
+		// 	try {
+		// 		// Tab 转 四空格
+		// 		source = source.split("	").join("    ");
+		// 		const events: TimelineEvent[] = yaml.load(source) as TimelineEvent[];
+		// 		console.log(events);
+
+		// 		events.sort((a, b) => a.startTime - b.startTime);
+
+		// 		if (events.length == 0) {
+		// 			el.createSpan({ text: "nothing to show" });
+		// 		} else {
+		// 			events.forEach(event => {
+		// 				console.log(event);
+		// 				el.createDiv("<br/>");
+		// 				const timelineBlock = el.createDiv({ cls: "timeline-block" });
+		// 				timelineBlock.createDiv({ cls: "timeline-event-name", text: event.name });
+		// 				timelineBlock.createDiv({ cls: "timeline-event-time", text: event.startTime + ' - ' + event.endTime });
+		// 				timelineBlock.createDiv({ cls: "timeline-event-content", text: event.content });
+		// 			})
+		// 		}
+		// 	} catch (error) {
+		// 		el.createEl("h1", { text: error })
+		// 	}
+		// });
 	}
 
 	onunload() {
 
 	}
+
 }
 
 function substringAfter(str: string, separator: string) {
@@ -61,6 +95,20 @@ function substringAfter(str: string, separator: string) {
 	return str.substring(index + separator.length);
 }
 
+function substringBetweenAll(str: string, start: string, end: string): string[] {
+	const results: string[] = [];
+	let startIndex: number = str.indexOf(start);
+	let endIndex: number;
+
+	while (str.contains(start) && str.contains(end)) {
+		let target = substringBetween(str, start, end);
+		results.push(target);
+		console.log(`target = ${target} str = ${str}`)
+		str = substringAfter(str, `${start}${target}${end}`);
+	}
+
+	return results;
+}
 function substringBetween(str: string, start: string, end: string): string {
 	const startIndex = str.indexOf(start) + start.length;
 	const endIndex = str.indexOf(end, startIndex);
@@ -83,25 +131,21 @@ function deconstractRows(rows: string[]): Event[] {
 	let tempEvent: Event = new Event();
 	for (let i = 0; i < rows.length; i++) {
 		let row = rows[i];
-		if (row.length == 0 && tempEvent.inited()) {
-			events.push(tempEvent);
-			tempEvent = new Event();
-		} else if (row.startsWith("@title:")) {
-			tempEvent.title = substringAfter(row, "@title:");
-		} else if (row.startsWith("@type:")) {
-			tempEvent.type = substringAfter(row, "@type:");
-		} else if (row.startsWith("@date:")) {
-			tempEvent.date.push(substringAfter(row, "@date:"));
-		} else if (row.startsWith("@member:")) {
-			substringBetween(substringAfter(row, "@member:"), "[", "]").split(",").forEach(item => {
-				tempEvent.member.push(item);
-			})
-		} else if (row.startsWith("@tag:")) {
-			substringBetween(substringAfter(row, "@tag:"), "[", "]").split(",").forEach(item => {
-				tempEvent.tag.push(item);
-			})
-		} else if (row.startsWith("@content:")) {
-			tempEvent.content = substringAfter(row, "@content:");
+		if (row.startsWith("# ")) {
+			if (tempEvent.inited()) {
+				events.push(tempEvent);
+				tempEvent = new Event();
+			}
+			let time = substringAfter(row, "# ");
+			tempEvent.date = Number.isNumber(time) ? Number.parseInt(time) + "" : time;
+		} else if (row.startsWith("#背景")) {
+			tempEvent.background = substringAfter(row, "#背景");
+		} else {
+			if (tempEvent.content.length > 0) {
+				tempEvent.content += `\n${row}`;
+			} else {
+				tempEvent.content += `${row}`;
+			}
 		}
 	}
 	if (tempEvent.inited()) {
@@ -112,25 +156,31 @@ function deconstractRows(rows: string[]): Event[] {
 
 export class Event {
 
-	// 类型
-	type: string;
-	// 名称
-	title: string;
 	// 时间
-	date: string[] = [];
+	date: string;
+	// 背景
+	background: string;
 	// 成员
 	member: string[] = [];
-	// 时间内容
-	content: string;
-	// tag
-	tag: string[] = [];
+	// 事件内容
+	content: string = '';
 
 	constructor() {
 
 	}
 
 	inited(): boolean {
-		return this.type?.length > 0 || this.title?.length > 0 || this.date?.length > 0
-			|| this.member?.length > 0 || this.content?.length > 0 || this.tag?.length > 0;
+		return this.date != null
+			|| this.member?.length > 0 || this.content?.length > 0;
+	}
+
+	memberDraw() {
+		console.log(`原始 content: ${this.content}`);
+		if (this.content.contains("[[") && this.content.contains("]]")) {
+			console.log(`包含引用的 content: ${this.content}`);
+			substringBetweenAll(this.content, "[[", "]]").forEach(member => {
+				this.member.push(member);
+			})
+		}
 	}
 }

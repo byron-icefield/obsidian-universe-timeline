@@ -6,3 +6,30 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+.timeline-block{
+    padding: 0px;
+    display: flex;
+    flex-direction: column;
+    border: solid 1px;
+    border-color: #2b75b7;
+}
+.timeline-title {
+    text-align: center;
+    background-color:#2b75b7;
+}
+.timeline-line{
+    width: 100%;
+    margin-left: 8px;
+    margin-right: 8px;
+    display: flex;
+}
+.timeline-line-time{
+    width: 60px;
+    display: flex;
+    align-items: center;
+}
+.timeline-line-content{
+    flex: 1;
+}
+
