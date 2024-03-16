@@ -11,38 +11,54 @@ export default class TimelineBlockPlugin extends Plugin {
 
 			let fileName: string = '';
 			let keyword: string = '';
+			let rangeFrom: Date | undefined;
+			let rangeTo: Date | undefined;
 			for (let i = 0; i < rows.length; i++) {
 				if (rows[i].startsWith("from ")) {
 					fileName = substringAfter(rows[i], "from ");
 					fileName = extractStr(fileName);
+				} else if (rows[i].startsWith("range ")) {
+					let rangeStr = substringAfter(rows[i], "range ");
+					var rangeArr = rangeStr.split("-");
+					rangeFrom = dateParse(rangeArr[0]);
+					if (rangeArr.length > 1) {
+						rangeTo = dateParse(rangeArr[1]);
+					}
 				} else if (rows[i].startsWith("keyword ")) {
 					keyword = substringAfter(rows[i], "keyword ");
 					keyword = extractStr(keyword);
 				}
 			}
+			var pre = '';
 			if (keyword) {
-				timelineBlock.createDiv({ cls: "timeline-title", text: `${keyword} from "${fileName}"` })
-			} else {
-				timelineBlock.createDiv({ cls: "timeline-title", text: `all from ${fileName}` })
+				pre += `keyword ${keyword} `;
 			}
+			if (rangeFrom !== undefined && rangeTo !== undefined) {
+				pre += `${rangeFrom}-${rangeTo}`;
+			}
+
+			timelineBlock.createDiv({ cls: "timeline-title", text: `${pre} from ${fileName}` })
 
 			let file = this.app.vault.getFileByPath(fileName + ".md");
 			if (file) {
 				this.app.vault.read(file).then(content => {
 					let events = deconstractContent(content);
 					events.forEach(event => event.selfComplete());
-					events.sort((a, b) => {
-						if (a.year != b.year) {
-							return a.year - b.year;
-						} else {
-							if (a.month != b.month) {
-								return a.month - b.month;
-							} else {
-								return a.day - b.day;
-							}
-						}
-					})
 
+					events.sort((a, b) => DateCompare(a.d, b.d));
+
+					console.log(events)
+
+					if (rangeFrom != null) {
+						events = events.filter(event => {
+							return DateCompare(event.d, rangeFrom) >= 0;
+						});
+					}
+					if (rangeTo != null) {
+						events = events.filter(event => {
+							return DateCompare(event.d, rangeTo) <= 0;
+						});
+					}
 					if (keyword.length > 0) {
 						events = events.filter(event => event.content.some(row => row.contains(keyword)));
 					}
@@ -189,14 +205,51 @@ function deconstractRows(rows: string[]): Event[] {
 	return events;
 }
 
+function dateParse(str: string): Date {
+	str = str.trim();
+	var date = new Date();
+	if (/\d{1,8}(.0?[1-9]|1[0-2])?(.0?[1-9]|[1-2][0-9]|3[0-1])?/.test(str)) {
+		let split = str.split(".");
+		switch (split.length) {
+			case 3:
+				date.day = Number.parseInt(split[2]);
+			case 2:
+				date.month = Number.parseInt(split[1]);
+			case 1:
+				date.year = Number.parseInt(split[0]);
+		}
+	}
+	return date;
+}
+
+function DateCompare(a: Date, b: Date): number {
+	if (a.year != b.year) {
+		return a.year - b.year;
+	} else {
+		if (a.month != b.month) {
+			return a.month - b.month;
+		} else {
+			return a.day - b.day;
+		}
+	}
+}
+
+export class Date {
+	year: number = 99999999;
+	month: number = 1;
+	day: number = 1;
+
+	toString() {
+		return `${this.year}.${this.month}.${this.day}`;
+	}
+}
+
 export class Event {
 
 	// 时间
 	date: string;
 
-	year: number = 999999;
-	month: number = 1;
-	day: number = 1;
+	d: Date;
 
 	// 背景
 	background: string[] = [];
@@ -215,16 +268,6 @@ export class Event {
 	selfComplete() {
 		// 日期转化
 		this.date = this.date?.trim() ?? '';
-		if (/\d{1,8}(.0?[1-9]|1[0-2])?(.0?[1-9]|[1-2][0-9]|3[0-1])?/.test(this.date)) {
-			let split = this.date.split(".");
-			switch (split.length) {
-				case 3:
-					this.day = Number.parseInt(split[2]);
-				case 2:
-					this.month = Number.parseInt(split[1]);
-				case 1:
-					this.year = Number.parseInt(split[0]);
-			}
-		}
+		this.d = dateParse(this.date);
 	}
 }
