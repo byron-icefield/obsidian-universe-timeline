@@ -12,24 +12,25 @@ If your plugin does not need CSS, delete this file.
     display: flex;
     flex-direction: column;
     border: solid 1px;
-    border-color: #2b75b7;
+    border-radius: 3px;
+    border-color: var(--interactive-accent);
 }
 .timeline-title {
     text-align: center;
-    background-color:#2b75b7;
+    background-color:var(--interactive-accent);
 }
-.timeline-line{
+.timeline-row{
     width: 100%;
     margin-left: 8px;
     margin-right: 8px;
     display: flex;
 }
-.timeline-line-time{
-    width: 60px;
+.timeline-row-time{
+    width: 80px;
     display: flex;
     align-items: center;
 }
-.timeline-line-content{
+.timeline-row-content{
     flex: 1;
 }
 
