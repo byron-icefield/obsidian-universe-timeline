@@ -40,14 +40,14 @@ export default class TimelineBlockPlugin extends Plugin {
 				pre = "All";
 			}
 
-			var titleDiv = timelineBlock.createDiv({ cls: "timeline-title" });
-			var simpleFileName = substringAfterLast(fileName, "/");
-			MarkdownRenderer.render(this.app, `${pre} from [[${simpleFileName}]]`, titleDiv, fileName, this);
-
 			let file = this.app.vault.getFileByPath(fileName + ".md");
 			if (file != null) {
 				function render(plugin: Plugin) {
 					timelineBlock.empty();
+					var titleDiv = timelineBlock.createDiv({ cls: "timeline-title" });
+					var simpleFileName = substringAfterLast(fileName, "/");
+					MarkdownRenderer.render(plugin.app, `${pre} from [[${simpleFileName}]]`, titleDiv, fileName, plugin);
+
 					plugin.app.vault.read(file!).then(content => {
 						let events = deconstractContent(content);
 						events.forEach(event => event.selfComplete());
