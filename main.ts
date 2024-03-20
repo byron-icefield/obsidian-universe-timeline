@@ -30,14 +30,19 @@ export default class TimelineBlockPlugin extends Plugin {
 				}
 			}
 			var pre = '';
-			if (keyword) {
-				pre += `keyword ${keyword} `;
+			if (keyword.length > 0) {
+				pre += `keyword [${keyword}] `;
 			}
 			if (rangeFrom !== undefined && rangeTo !== undefined) {
-				pre += `${rangeFrom}-${rangeTo}`;
+				pre += `[${rangeFrom}]-[${rangeTo}]`;
+			}
+			if (pre.length == 0) {
+				pre = "All";
 			}
 
-			timelineBlock.createDiv({ cls: "timeline-title", text: `${pre} from ${fileName}` })
+			var titleDiv = timelineBlock.createDiv({ cls: "timeline-title" });
+			var simpleFileName = substringAfterLast(fileName, "/");
+			MarkdownRenderer.render(this.app, `${pre} from [[${simpleFileName}]]`, titleDiv, fileName, this);
 
 			let file = this.app.vault.getFileByPath(fileName + ".md");
 			if (file) {
@@ -49,14 +54,14 @@ export default class TimelineBlockPlugin extends Plugin {
 
 					console.log(events)
 
-					if (rangeFrom != null) {
+					if (rangeFrom != undefined) {
 						events = events.filter(event => {
-							return DateCompare(event.d, rangeFrom) >= 0;
+							return DateCompare(event.d, rangeFrom!) >= 0;
 						});
 					}
-					if (rangeTo != null) {
+					if (rangeTo != undefined) {
 						events = events.filter(event => {
-							return DateCompare(event.d, rangeTo) <= 0;
+							return DateCompare(event.d, rangeTo!) <= 0;
 						});
 					}
 					if (keyword.length > 0) {
@@ -75,13 +80,21 @@ export default class TimelineBlockPlugin extends Plugin {
 							// timelineLineTime.onClickEvent(event => {
 							// 	console.log(event);
 							// })
+							timelineLineTime.createDiv({ cls: "timeline-row-time-string-head" })
 
 							let timelineLineContent = timelineLine.createDiv({ cls: "timeline-row-content" })
+							let timelineRowContentText = timelineLineContent.createDiv({ cls: "timeline-row-content-text" })
 							if (event.background.length > 0) {
 								let backgroundTag = event.background.map(i => `#${i}`).join(" ");
-								MarkdownRenderer.render(this.app, `${backgroundTag}`, timelineLineContent, fileName, this);
+								MarkdownRenderer.render(this.app, `${backgroundTag}`, timelineRowContentText, fileName, this);
 							}
-							MarkdownRenderer.render(this.app, event.content.filter(row => row.contains(keyword)).map(r => `${r}`).join("\n"), timelineLineContent, fileName, this);
+							var filtered = event.content;
+							if (keyword.length > 0) {
+								var filtered = filtered.filter(row => row.contains(keyword));
+							}
+							if (filtered.length > 0) {
+								MarkdownRenderer.render(this.app, filtered.filter(r => !isTrimmedEmpty(r)).map(r => `${r}`).join("\n"), timelineRowContentText, fileName, this);
+							}
 						})
 					}
 				});
@@ -121,6 +134,10 @@ export default class TimelineBlockPlugin extends Plugin {
 
 	}
 
+}
+
+function isTrimmedEmpty(str: string): boolean {
+	return str.trim() === "";
 }
 
 function extractStr(str: string): string {

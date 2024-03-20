@@ -6,31 +6,62 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
-
-.timeline-block{
-    padding: 0px;
-    display: flex;
-    flex-direction: column;
-    border: solid 1px;
-    border-radius: 3px;
-    border-color: var(--interactive-accent);
+.timeline-title p {
+	margin-top: 6px;
+	margin-bottom: 6px;
+}
+.timeline-row-content-text p {
+	margin-top: 3px;
+	margin-bottom: 3px;
+}
+.timeline-row-content-text ol {
+	margin-top: 3px;
+	margin-bottom: 3px;
+	padding-left: 15px;
+}
+.timeline-block {
+	padding: 0px;
+	display: flex;
+	flex-direction: column;
+	border: solid 1px;
+	border-radius: 3px;
+	border-color: var(--interactive-accent);
 }
 .timeline-title {
-    text-align: center;
-    background-color:var(--interactive-accent);
+	text-align: center;
+	background-color: var(--interactive-accent);
 }
-.timeline-row{
-    width: 100%;
+
+.timeline-row {
+	width: 100%;
+	margin-left: 8px;
+	margin-right: 8px;
+	display: flex;
+	align-items: center;
+}
+.timeline-row-time {
+	width: 100px;
+	display: flex;
+	align-items: center;
+}
+.timeline-row-time-string-head {
     margin-left: 8px;
-    margin-right: 8px;
-    display: flex;
-}
-.timeline-row-time{
-    width: 80px;
-    display: flex;
-    align-items: center;
-}
-.timeline-row-content{
     flex: 1;
+	height: 1px;
+	background-color: var(--interactive-accent);
+}
+.timeline-row-content {
+	flex: 1;
+	display: flex;
+	align-items: center;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+.timeline-row-content-text {
+	flex: 1;
+	display: flex;
+	align-items: center;
+    border-left: solid 1px var(--interactive-accent);
+    padding-left: 8px;
 }
 

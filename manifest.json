@@ -1,9 +1,9 @@
 {
 	"id": "universe-timeline",
-	"name": "universe Time Line",
+	"name": "Universe Time Line",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "a tool about timeline for novel writer",
+	"description": "a tool about timeline for story universe",
 	"author": "byron-icefield",
 	"authorUrl": "",
 	"fundingUrl": "",
