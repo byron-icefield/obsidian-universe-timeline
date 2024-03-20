@@ -1,4 +1,4 @@
-import { Plugin, MarkdownRenderer } from 'obsidian';
+import { Plugin, MarkdownRenderer, TFile, App } from 'obsidian';
 // import * as yaml from 'js-yaml';
 // import { TimelineEvent } from 'event/event';
 
@@ -45,59 +45,67 @@ export default class TimelineBlockPlugin extends Plugin {
 			MarkdownRenderer.render(this.app, `${pre} from [[${simpleFileName}]]`, titleDiv, fileName, this);
 
 			let file = this.app.vault.getFileByPath(fileName + ".md");
-			if (file) {
-				this.app.vault.read(file).then(content => {
-					let events = deconstractContent(content);
-					events.forEach(event => event.selfComplete());
+			if (file != null) {
+				function render(plugin: Plugin) {
+					timelineBlock.empty();
+					plugin.app.vault.read(file!).then(content => {
+						let events = deconstractContent(content);
+						events.forEach(event => event.selfComplete());
 
-					events.sort((a, b) => DateCompare(a.d, b.d));
+						events.sort((a, b) => DateCompare(a.d, b.d));
 
-					console.log(events)
+						if (rangeFrom != undefined) {
+							events = events.filter(event => {
+								return DateCompare(event.d, rangeFrom!) >= 0;
+							});
+						}
+						if (rangeTo != undefined) {
+							events = events.filter(event => {
+								return DateCompare(event.d, rangeTo!) <= 0;
+							});
+						}
+						if (keyword.length > 0) {
+							events = events.filter(event => event.content.some(row => row.contains(keyword)));
+						}
 
-					if (rangeFrom != undefined) {
-						events = events.filter(event => {
-							return DateCompare(event.d, rangeFrom!) >= 0;
-						});
+						if (events?.length == 0) {
+							timelineBlock.createSpan({ text: "event not found" })
+						} else {
+							events.forEach(event => {
+								let timelineLine = timelineBlock.createDiv({ cls: "timeline-row" });
+
+								let timelineLineTime = timelineLine.createDiv({ cls: "timeline-row-time" })
+								// MarkdownRenderer.render(this.app, `[[${substringAfterLast(fileName, "/")}#${event.date}]]`, timelineLineTime, fileName, this)
+								MarkdownRenderer.render(plugin.app, `[${event.date}](${fileName}#${event.date})`, timelineLineTime, fileName, plugin)
+
+								timelineLineTime.createDiv({ cls: "timeline-row-time-string-head" })
+
+								let timelineLineContent = timelineLine.createDiv({ cls: "timeline-row-content" })
+								let timelineRowContentText = timelineLineContent.createDiv({ cls: "timeline-row-content-text" })
+								if (event.background.length > 0) {
+									let backgroundTag = event.background.map(i => `#${i}`).join(" ");
+									MarkdownRenderer.render(plugin.app, `${backgroundTag}`, timelineRowContentText, fileName, plugin);
+								}
+								var filtered = event.content;
+								if (keyword.length > 0) {
+									var filtered = filtered.filter(row => row.contains(keyword));
+								}
+								if (filtered.length > 0) {
+									MarkdownRenderer.render(plugin.app, filtered.map(r => `${r}`).join("\n"), timelineRowContentText, fileName, plugin);
+								}
+							})
+						}
+					});
+				}
+
+				// 渲染
+				render(this);
+				// 	监听
+				this.app.vault.on('modify', (targetFile) => {
+					if (targetFile.path === file?.path) {
+						render(this);
 					}
-					if (rangeTo != undefined) {
-						events = events.filter(event => {
-							return DateCompare(event.d, rangeTo!) <= 0;
-						});
-					}
-					if (keyword.length > 0) {
-						events = events.filter(event => event.content.some(row => row.contains(keyword)));
-					}
-
-					if (events?.length == 0) {
-						timelineBlock.createSpan({ text: "event not found" })
-					} else {
-						events.forEach(event => {
-							let timelineLine = timelineBlock.createDiv({ cls: "timeline-row" });
-
-							let timelineLineTime = timelineLine.createDiv({ cls: "timeline-row-time" })
-							// MarkdownRenderer.render(this.app, `[[${substringAfterLast(fileName, "/")}#${event.date}]]`, timelineLineTime, fileName, this)
-							MarkdownRenderer.render(this.app, `${event.date}`, timelineLineTime, fileName, this)
-							// timelineLineTime.onClickEvent(event => {
-							// 	console.log(event);
-							// })
-							timelineLineTime.createDiv({ cls: "timeline-row-time-string-head" })
-
-							let timelineLineContent = timelineLine.createDiv({ cls: "timeline-row-content" })
-							let timelineRowContentText = timelineLineContent.createDiv({ cls: "timeline-row-content-text" })
-							if (event.background.length > 0) {
-								let backgroundTag = event.background.map(i => `#${i}`).join(" ");
-								MarkdownRenderer.render(this.app, `${backgroundTag}`, timelineRowContentText, fileName, this);
-							}
-							var filtered = event.content;
-							if (keyword.length > 0) {
-								var filtered = filtered.filter(row => row.contains(keyword));
-							}
-							if (filtered.length > 0) {
-								MarkdownRenderer.render(this.app, filtered.filter(r => !isTrimmedEmpty(r)).map(r => `${r}`).join("\n"), timelineRowContentText, fileName, this);
-							}
-						})
-					}
-				});
+				})
 			} else {
 				timelineBlock.createSpan({ text: "file not found" })
 			}

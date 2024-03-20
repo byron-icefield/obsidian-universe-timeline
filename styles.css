@@ -10,10 +10,10 @@ If your plugin does not need CSS, delete this file.
 	margin-top: 6px;
 	margin-bottom: 6px;
 }
-.timeline-row-content-text p {
+/* .timeline-row-content-text p {
 	margin-top: 3px;
 	margin-bottom: 3px;
-}
+} */
 .timeline-row-content-text ol {
 	margin-top: 3px;
 	margin-bottom: 3px;
@@ -58,8 +58,6 @@ If your plugin does not need CSS, delete this file.
     padding-bottom: 8px;
 }
 .timeline-row-content-text {
-	flex: 1;
-	display: flex;
 	align-items: center;
     border-left: solid 1px var(--interactive-accent);
     padding-left: 8px;
